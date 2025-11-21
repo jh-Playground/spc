@@ -115,7 +115,7 @@
                   <option>Fintech / Payments</option>
                   <option>AI / Usage-based API</option>
                   <option>Non-profit / Education</option>
-                  <option>Other</option>
+                  
                 </select>
               </div>
 
@@ -194,6 +194,7 @@
                       type="text"
                       inputmode="decimal"
                       placeholder="0.30"
+                      value="0.30"
                       class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
                     />
                   </div>
@@ -213,7 +214,8 @@
                       min="0"
                       max="100"
                       step="0.01"
-                      placeholder="2.9"
+                      placeholder="2.60"
+                      value="2.60"
                       class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
                     />
                     <span class="text-sm text-slate-500 pr-1">
@@ -323,7 +325,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
               <h2 class="text-base sm:text-lg font-semibold text-slate-900 tracking-tight">
-                Recommended Stripe products
+                Stripe product(s)
               </h2>
               <p class="text-sm text-slate-500">
                 This table updates based on segment, contracting market, and business model.
@@ -339,10 +341,10 @@
                     Product
                   </th>
                   <th class="py-3 px-4 text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Best for
+                    Use case(s)
                   </th>
                   <th class="py-3 px-4 text-xs font-medium uppercase tracking-wide text-slate-500 hidden md:table-cell">
-                    Why it matters
+                    Value positioning
                   </th>
                 </tr>
               </thead>
@@ -508,63 +510,350 @@
         annualRevenueValue.textContent = formatMoney(annualRevenue, revenueCurrency);
       }
 
-      // --- Products recommendation logic (simple rules we can refine) ---
+      // --- Stripe products config + recommendation logic ---
+
+      // Product defs keyed by an internal id
       const PRODUCT_DEFS = {
         payments: {
-          name: 'Stripe Payments',
-          bestFor: 'Core card & wallet payments',
-          why: 'Unified payments stack with optimised acceptance, retries, and network-level optimisations.'
+          id: 'payments',
+          priority: 10,
+          name: 'Payments',
+          models: [
+            'B2B SaaS',
+            'B2C eCommerce',
+            'Marketplace / Platform',
+            'Subscription Consumer App',
+            'Fintech / Payments',
+            'AI / Usage-based API',
+            'Non-profit / Education',
+            'Other'
+          ],
+          useCases: 'Core online payments: cards, wallets, local methods, and bank debits (BECS, BACS, etc.).',
+          valueBullets: [
+            'Single stack for cards, wallets, bank debits, and local methods.',
+            'Lower friction through optimised authorisation, and smart retries.',
+            'Single-pane-of-glass for refunds, disputes, and reconciliation for all payment methods.'
+          ]
         },
         checkout: {
-          name: 'Stripe Checkout',
-          bestFor: 'Fast-start hosted checkout',
-          why: 'Hosted, conversion-optimised checkout with support for wallets, BNPL, and localisation.'
+          id: 'checkout',
+          priority: 30,
+          name: 'Checkout',
+          models: [
+            'B2C eCommerce',
+            'Subscription Consumer App',
+            'B2B SaaS',
+            'Non-profit / Education',
+            'Other'
+          ],
+          useCases: 'Hosted checkout pages, rapid deployment and high conversion. Tight integration with entire stack.',
+          valueBullets: [
+            'Optimised, off-the-shelf checkout flow supporting cards, wallets, and BNPL.',
+            'Immediate localisation of languages, currencies, and payment methods, driven by customer location.',
+            'Rapidly deploy embedded and integrated payment flows at low TCO.'
+          ]
+        },
+        elements: {
+          id: 'elements',
+          priority: 40,
+          name: 'Elements',
+          models: [
+            'B2B SaaS',
+            'B2C eCommerce',
+            'Subscription Consumer App',
+            'Fintech / Payments',
+            'AI / Usage-based API'
+          ],
+          useCases: 'Floating purchase and checkout experiences. Customisable UI components embedded in your own app or site.',
+          valueBullets: [
+            'Drop-in components for cards, addresses, ID, and wallets, visually matched to your existing experiences.',
+            'Continuously updated for new schemes, regulations, and UX best practices.',
+            'Credentials and processing live on Stripes stack, keeping sensitive financial data off your servers, simplifying PCI compliance.'
+          ]
         },
         paymentLinks: {
+          id: 'paymentLinks',
+          priority: 50,
           name: 'Payment Links',
-          bestFor: 'No-code payment flows',
-          why: 'Share a link to start taking payments without engineering lift.'
+          models: [
+            'B2C eCommerce',
+            'B2B SaaS',
+            'Non-profit / Education',
+            'Other'
+          ],
+          useCases: 'No-code payment flows via shareable URLs and QR codes.',
+          valueBullets: [
+            'Start taking payments without writing a single line of code... just generate and share a link.',
+            'One-off charges, subscriptions, donations, and “pay what you want”.',
+            'Great for spikes, manual deals, and pre-product-market-fit offers.'
+          ]
         },
         billing: {
-          name: 'Stripe Billing',
-          bestFor: 'Subscriptions & invoicing',
-          why: 'Handles recurring billing, proration, trials, and revenue recognition workflows.'
+          id: 'billing',
+          priority: 60,
+          name: 'Billing',
+          models: [
+            'B2B SaaS',
+            'Subscription Consumer App',
+            'AI / Usage-based API',
+            'Fintech / Payments',
+            'Non-profit / Education'
+          ],
+          useCases: 'Subscriptions, recurring billing, and usage-based pricing.',
+          valueBullets: [
+            'Supports seat-based, add-ons, sub tiers, and usage/consumption-based pricing in a single product catalog.',
+            'Proration, free trials, coupons/discounts/vouchers, and upgrade/downgrade flows.',
+            'Built-in dunning and smart retries to recover failed payments and reduce churn.'
+          ]
         },
         invoicing: {
-          name: 'Stripe Invoicing',
-          bestFor: 'B2B invoices',
-          why: 'Send smart invoices with embedded payment methods and automatic reconciliation.'
-        },
-        connect: {
-          name: 'Stripe Connect',
-          bestFor: 'Marketplaces & platforms',
-          why: 'Manage multi-party payouts, KYC, onboarding, and compliance at scale.'
-        },
-        radar: {
-          name: 'Stripe Radar',
-          bestFor: 'Fraud detection',
-          why: 'Machine-learning fraud protection powered by data across millions of businesses.'
+          id: 'invoicing',
+          priority: 70,
+          name: 'Invoicing',
+          models: [
+            'B2B SaaS',
+            'Fintech / Payments',
+            'Marketplace / Platform',
+            'Non-profit / Education',
+            'Other'
+          ],
+          useCases: 'Send B2B invoices with embedded payment methods.',
+          valueBullets: [
+            'Create and send invoices, customers pay with cards or bank transfers.',
+            'Automatically reconcile payments with invoices and updates their status in Stripe.',
+            'Reuses your Stripe products and prices for consistent catalog and reporting.'
+          ]
         },
         tax: {
-          name: 'Stripe Tax',
-          bestFor: 'Indirect tax compliance',
-          why: 'Automatically calculates, collects, and reports tax in supported jurisdictions.'
+          id: 'tax',
+          priority: 80,
+          name: 'Tax',
+          models: [
+            'B2B SaaS',
+            'B2C eCommerce',
+            'Subscription Consumer App',
+            'Marketplace / Platform',
+            'Fintech / Payments',
+            'Non-profit / Education'
+          ],
+          useCases: 'Automated calculation and collection of (US) sales tax, VAT, and GST.',
+          valueBullets: [
+            'Automatically calculates and collects the right tax based on customer location and product type.',
+            'Keeps up to date with changing tax rules and thresholds across jurisdictions.',
+            'Produces reports to support filing and remittance, reducing manual tax work.'
+          ]
         },
-        terminal: {
-          name: 'Stripe Terminal',
-          bestFor: 'In-person payments',
-          why: 'Unified online + in-person payments stack with pre-certified readers.'
+        revRec: {
+          id: 'revRec',
+          priority: 180,
+          name: 'Revenue Recognition',
+          models: [
+            'B2B SaaS',
+            'Subscription Consumer App',
+            'AI / Usage-based API',
+            'Fintech / Payments'
+          ],
+          useCases: 'Automated ASC 606 / IFRS 15 revenue recognition.',
+          valueBullets: [
+            'Generates audit-ready revenue schedules directly from Billing and Invoicing data.',
+            'Supports deferrals, multi-element arrangements, and contract modifications.',
+            'Reduces manual spreadsheet work for finance and accounting teams.'
+          ]
         },
-        climate: {
-          name: 'Stripe Climate',
-          bestFor: 'Climate-forward brands',
-          why: 'Allocate a fraction of revenue to high-quality carbon removal projects.'
+        sigma: {
+          id: 'sigma',
+          priority: 160,
+          name: 'Sigma',
+          models: [
+            'B2B SaaS',
+            'B2C eCommerce',
+            'Marketplace / Platform',
+            'Subscription Consumer App',
+            'Fintech / Payments',
+            'AI / Usage-based API',
+            'Non-profit / Education',
+            'Other'
+          ],
+          useCases: 'Advanced analytics on Stripe data, query with SQL or AI in the Dashboard.',
+          valueBullets: [
+            'Run queries on payments, subscriptions, invoices, and more directly in the Stripe Dashboard.',
+            'Use SQL or AI-powered prompts to generate reports and charts.',
+            'Share and schedule reports to keep your teams aligned.'
+          ]
         },
         dataPipeline: {
-          name: 'Stripe Data Pipeline',
-          bestFor: 'Data teams',
-          why: 'Sync Stripe data to your warehouse for deeper analysis and modelling.'
-        }
+          id: 'dataPipeline',
+          priority: 170,
+          name: 'Data Pipeline',
+          models: [
+            'B2B SaaS',
+            'Fintech / Payments',
+            'Marketplace / Platform',
+            'AI / Usage-based API'
+          ],
+          useCases: 'Sync Stripe data into your data warehouse or lake.',
+          valueBullets: [
+            'Continuously streams Stripe datasets to Snowflake, Redshift, BigQuery, S3, and more.',
+            'Eliminates the need to build and maintain custom ETL pipelines for Stripe data.',
+            'Bundled with Stripe Sigma for advanced analysis and custom reporting.'
+          ]
+        },
+        connect: {
+          id: 'connect',
+          priority: 90,
+          name: 'Connect',
+          models: [
+            'Marketplace / Platform',
+            'Fintech / Payments',
+            'B2B SaaS',
+            'Subscription Consumer App'
+          ],
+          useCases: 'Platforms and marketplaces (sell-through), incl. multi-party payments and payouts.',
+          valueBullets: [
+            'Onboard and verify sellers, service providers, or creators with built-in KYC/KYB.',
+            'Route funds and payouts to multiple parties, be confident that Stripe will manage compliance.',
+            'Supports different account types for varying levels of control and UX.'
+          ]
+        },
+        financialAccounts: {
+          id: 'financialAccounts',
+          priority: 100,
+          name: 'Financial Accounts for Platforms',
+          models: [
+            'Marketplace / Platform',
+            'Fintech / Payments',
+            'B2B SaaS'
+          ],
+          useCases: 'Offer stored-value accounts and money movement inside your platform.',
+          valueBullets: [
+            'Let your users hold balances, move money, and use cards within your ecosystem.',
+            'Combine with Connect and Issuing to build end-to-end embedded finance products.',
+            'Programmable controls for cash management and fund flows.'
+          ]
+        },
+        issuing: {
+          id: 'issuing',
+          priority: 110,
+          name: 'Issuing',
+          models: [
+            'Marketplace / Platform',
+            'Fintech / Payments',
+            'B2B SaaS',
+            'Subscription Consumer App'
+          ],
+          useCases: 'Create and manage virtual and physical payment cards.',
+          valueBullets: [
+            'Issue branded virtual and physical cards programmatically via API.',
+            'Set real-time controls on spend limits, categories, and funding sources.',
+            'Combine with Financial Accounts and Connect for expense or payout card products.'
+          ]
+        },
+        capital: {
+          id: 'capital',
+          priority: 120,
+          name: 'Capital',
+          models: [
+            'Marketplace / Platform',
+            'B2B SaaS',
+            'B2C eCommerce',
+            'Fintech / Payments'
+          ],
+          useCases: 'Provide revenue-based financing to your merchants or users.',
+          valueBullets: [
+            'Utilises Stripe payment history to underwrite advances automatically.',
+            'Repayments are deducted from future sales, simplifying collections.',
+            'Helps platforms drive GMV growth and merchant retention.'
+          ]
+        },
+        terminal: {
+          id: 'terminal',
+          priority: 130,
+          name: 'Terminal',
+          models: [
+            'B2C eCommerce',
+            'Subscription Consumer App',
+            'Marketplace / Platform',
+            'Other'
+          ],
+          useCases: 'In-person card payments integrated with online flows.',
+          valueBullets: [
+            'Immediately deployed card readers that work seamlessly with your Stripe integration.',
+            'Unifies online and in-person payments for consistent reporting and reconciliation.',
+            'Supports tap, chip, and wallets across supported markets.'
+          ]
+        },
+        radar: {
+          id: 'radar',
+          priority: 20,
+          name: 'Radar',
+          models: [
+            'B2B SaaS',
+            'B2C eCommerce',
+            'Marketplace / Platform',
+            'Subscription Consumer App',
+            'Fintech / Payments',
+            'AI / Usage-based API',
+            'Non-profit / Education',
+            'Other'
+          ],
+          useCases: 'Free for all startups. Fraud detection and risk management for card payments.',
+          valueBullets: [
+            'Machine-learning risk models trained on data from millions of businesses.',
+            'Custom rules and review workflows to align fraud controls with your risk appetite.',
+            'Integrated directly into Stripe Payments—no separate integration required.'
+          ]
+        },
+        identity: {
+          id: 'identity',
+          priority: 140,
+          name: 'Identity',
+          models: [
+            'Fintech / Payments',
+            'Marketplace / Platform',
+            'B2B SaaS',
+            'Subscription Consumer App'
+          ],
+          useCases: 'KYC / identity verification with ID and biometric checks.',
+          valueBullets: [
+            'Verifies government IDs and facial biometrics to confirm customers are who they say they are.',
+            'Optimised verification flows that minimise friction and reduce fraud.',
+            'Provides verification results via API for compliance and trust/safety teams.'
+          ]
+        },
+        financialConnections: {
+          id: 'financialConnections',
+          priority: 150,
+          name: 'Financial Connections',
+          models: [
+            'Fintech / Payments',
+            'B2B SaaS',
+            'Non-profit / Education'
+          ],
+          useCases: 'Securely link customer bank accounts for payments and data.',
+          valueBullets: [
+            'Lets customers connect bank accounts directly from supported institutions.',
+            'Used to verify accounts, confirm balances, and reduce failures.',
+            'Integrates with bank debits and payouts for smoother money movement.'
+          ]
+        },
+        climate: {
+          id: 'climate',
+          priority: 190,
+          name: 'Stripe Climate',
+          models: [
+            'B2C eCommerce',
+            'Subscription Consumer App',
+            'B2B SaaS',
+            'Marketplace / Platform',
+            'Non-profit / Education'
+          ],
+          useCases: 'Allocate a portion of revenue to carbon removal.',
+          valueBullets: [
+            'Easily commit a fraction of revenue to a curated portfolio of carbon removal projects.',
+            'Optional UI components help communicate climate action to end customers.',
+            'Stripe performs technical diligence on carbon removal suppliers.'
+          ]
+        },
       };
 
       function pushUnique(arr, productKey) {
@@ -573,68 +862,65 @@
       }
 
       function getRecommendedProducts(segment, market, businessModel) {
-        const keys = [];
         const hasContext = !!(segment || market || businessModel);
-
         if (!hasContext) return [];
 
-        // Baseline products for essentially any internet business
+        const modelLabel = businessModel || 'Other';
+        const marketLower = (market || '').toLowerCase();
+        const keys = [];
+
+        // Model-based matching
+        for (const [key, def] of Object.entries(PRODUCT_DEFS)) {
+          const models = def.models || [];
+          const matchesModel = models.includes(modelLabel);
+          if (!matchesModel) continue;
+
+          // Extra gating for Terminal by contracting market
+          if (key === 'terminal') {
+            const terminalMarkets = [
+              'australia',
+              'new zealand',
+              'singapore',
+              'japan',
+              'hong kong',
+              'canada',
+              'france',
+              'germany',
+              'ireland',
+              'netherlands',
+              'united kingdom',
+              'uk',
+              'united states',
+              'usa',
+              'us'
+            ];
+            const eligible = terminalMarkets.some((m) => marketLower.includes(m));
+            if (!eligible) continue;
+          }
+
+          pushUnique(keys, key);
+        }
+
+        // Always include core stack if there is any context
         pushUnique(keys, 'payments');
         pushUnique(keys, 'radar');
 
-        const model = (businessModel || '').toLowerCase();
-        const marketLower = (market || '').toLowerCase();
-
-        // Subscription / SaaS
-        if (model.includes('saas') || model.includes('subscription')) {
-          pushUnique(keys, 'billing');
-          pushUnique(keys, 'invoicing');
-          pushUnique(keys, 'tax');
-          pushUnique(keys, 'dataPipeline');
-        }
-
-        // B2C eCommerce
-        if (model.includes('ecommerce') || model.includes('b2c')) {
-          pushUnique(keys, 'checkout');
-          pushUnique(keys, 'paymentLinks');
-          pushUnique(keys, 'tax');
-        }
-
-        // Marketplaces / platforms
-        if (model.includes('marketplace') || model.includes('platform')) {
-          pushUnique(keys, 'connect');
-          pushUnique(keys, 'billing');
-        }
-
-        // Fintech / payments / AI / usage-based APIs
-        if (model.includes('fintech') || model.includes('payments') || model.includes('ai')) {
-          pushUnique(keys, 'billing');
-          pushUnique(keys, 'dataPipeline');
-        }
-
-        // Non-profit / education
-        if (model.includes('non-profit') || model.includes('non profit') || model.includes('education')) {
-          pushUnique(keys, 'paymentLinks');
-          pushUnique(keys, 'billing');
-          pushUnique(keys, 'climate');
-        }
-
-        // Markets where in-person is common
-        if (
-          ['australia', 'new zealand', 'singapore', 'japan', 'hong kong']
-            .some((m) => marketLower.includes(m))
-        ) {
-          pushUnique(keys, 'terminal');
-        }
-
-        // Segment-specific flavour (currently just Startup)
+        // Startup nudge: make sure quick-start products show up
         if (segment === 'Startup') {
-          // Startups often favour lower-lift integration paths initially
-          pushUnique(keys, 'checkout');
-          pushUnique(keys, 'paymentLinks');
+          ['checkout', 'paymentLinks', 'atlas'].forEach((p) => pushUnique(keys, p));
         }
 
-        return keys.map((key) => PRODUCT_DEFS[key]);
+        // Sort by product priority
+        keys.sort((a, b) => {
+          const pa = PRODUCT_DEFS[a].priority ?? 9999;
+          const pb = PRODUCT_DEFS[b].priority ?? 9999;
+          return pa - pb;
+        });
+
+        // Keep it consumable – first 10 only
+        const limitedKeys = keys.slice(0, 150);
+
+        return limitedKeys.map((key) => PRODUCT_DEFS[key]);
       }
 
       function updateProductsTable() {
@@ -654,6 +940,18 @@
         productsTableEmpty.classList.add('hidden');
 
         for (const product of products) {
+          const bullets = product.valueBullets || [];
+          const bulletsHtml = bullets.length
+            ? `<ul class="list-disc pl-4 space-y-1">
+                ${bullets
+                  .map(
+                    (b) =>
+                      `<li class="text-sm text-slate-500 leading-snug">${b}</li>`
+                  )
+                  .join('')}
+               </ul>`
+            : `<div class="text-sm text-slate-500">${product.valuePositioning || ''}</div>`;
+
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-indigo-50/60 transition-colors';
 
@@ -662,261 +960,254 @@
               <div class="text-base font-medium text-slate-900">${product.name}</div>
             </td>
             <td class="py-3 px-4 align-top">
-              <div class="text-sm text-slate-800">${product.bestFor}</div>
+              <div class="text-sm text-slate-800">${product.useCases}</div>
             </td>
             <td class="py-3 px-4 align-top hidden md:table-cell">
-              <div class="text-sm text-slate-500">${product.why}</div>
+              ${bulletsHtml}
             </td>
           `;
           productsTableBody.appendChild(tr);
         }
       }
 
-// --- Download PDF: Overview + Products panels (custom export layout) ---
-async function handleDownloadPdf() {
-  try {
-    if (!window.jspdf || !window.jspdf.jsPDF || typeof html2canvas === 'undefined') {
-      alert('PDF generation libraries not available. Please check that you are online and reload the page.');
-      return;
-    }
+      // --- Download PDF: Overview + Products panels (custom export layout) ---
+      async function handleDownloadPdf() {
+        try {
+          if (!window.jspdf || !window.jspdf.jsPDF || typeof html2canvas === 'undefined') {
+            alert('PDF generation libraries not available. Please check that you are online and reload the page.');
+            return;
+          }
 
-    const { jsPDF } = window.jspdf;
+          const { jsPDF } = window.jspdf;
 
-    // Current values from the live UI
-    const companyName = (companyNameInput.value || 'Prospect overview').trim();
-    const currencyCode = (revenueCurrencySelect.value || 'USD').trim();
-    const annualRaw = annualRevenueValue.textContent.trim();
-    const monthlyRaw = monthlyRevenueValue.textContent.trim();
+          // Current values from the live UI
+          const companyName = (companyNameInput.value || 'Prospect overview').trim();
+          const currencyCode = (revenueCurrencySelect.value || 'USD').trim();
+          const annualRaw = annualRevenueValue.textContent.trim();
+          const monthlyRaw = monthlyRevenueValue.textContent.trim();
 
-    const annualExport =
-      annualRaw && annualRaw !== '—' ? `${annualRaw} ${currencyCode}` : '—';
-    const monthlyExport =
-      monthlyRaw && monthlyRaw !== '—' ? `${monthlyRaw} ${currencyCode}` : '—';
+          const annualExport =
+            annualRaw && annualRaw !== '—' ? `${annualRaw} ${currencyCode}` : '—';
+          const monthlyExport =
+            monthlyRaw && monthlyRaw !== '—' ? `${monthlyRaw} ${currencyCode}` : '—';
 
-    // Extract current products from the table
-    const products = [];
-    productsTableBody.querySelectorAll('tr').forEach((row) => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length >= 2) {
-        const name = (cells[0].innerText || '').trim();
-        const bestFor = (cells[1].innerText || '').trim();
-        const why = cells[2] ? (cells[2].innerText || '').trim() : '';
-        if (name) {
-          products.push({ name, bestFor, why });
+          // Extract current products from the table
+          const products = [];
+          productsTableBody.querySelectorAll('tr').forEach((row) => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 2) {
+              const name = (cells[0].innerText || '').trim();
+              const bestFor = (cells[1].innerText || '').trim();
+              const why = cells[2] ? (cells[2].innerText || '').trim() : '';
+              if (name) {
+                products.push({ name, bestFor, why });
+              }
+            }
+          });
+
+          // Build an off-screen wrapper with a simple, PDF-friendly layout
+          const wrapper = document.createElement('div');
+          wrapper.style.position = 'fixed';
+          wrapper.style.left = '-9999px';
+          wrapper.style.top = '0';
+          wrapper.style.background = '#ffffff';
+          wrapper.style.padding = '24px';
+          wrapper.style.boxSizing = 'border-box';
+          wrapper.style.maxWidth = '900px';
+          wrapper.style.fontFamily = '-apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+          wrapper.style.color = '#0f172a';
+
+          // --- Overview export block ---
+          const overviewExport = document.createElement('div');
+          overviewExport.style.border = '1px solid #e2e8f0';
+          overviewExport.style.borderRadius = '16px';
+          overviewExport.style.padding = '20px 24px';
+          overviewExport.style.marginBottom = '20px';
+          overviewExport.style.background = '#f8fafc';
+
+          // Company name (big + clear)
+          const nameEl = document.createElement('div');
+          nameEl.textContent = companyName || 'Prospect overview';
+          nameEl.style.fontSize = '24px';
+          nameEl.style.lineHeight = '1.3';
+          nameEl.style.fontWeight = '700';
+          nameEl.style.marginBottom = '12px';
+          overviewExport.appendChild(nameEl);
+
+          // Annual revenue
+          const annualBlock = document.createElement('div');
+          annualBlock.style.marginBottom = '12px';
+
+          const annualLabel = document.createElement('div');
+          annualLabel.textContent = 'EXPECTED ANNUAL REVENUE';
+          annualLabel.style.fontSize = '11px';
+          annualLabel.style.letterSpacing = '0.08em';
+          annualLabel.style.textTransform = 'uppercase';
+          annualLabel.style.color = '#64748b';
+          annualLabel.style.marginBottom = '4px';
+
+          const annualValueEl = document.createElement('div');
+          annualValueEl.textContent = annualExport;
+          annualValueEl.style.fontSize = '20px';
+          annualValueEl.style.fontWeight = '600';
+
+          annualBlock.appendChild(annualLabel);
+          annualBlock.appendChild(annualValueEl);
+          overviewExport.appendChild(annualBlock);
+
+          // Monthly revenue
+          const monthlyBlock = document.createElement('div');
+
+          const monthlyLabel = document.createElement('div');
+          monthlyLabel.textContent = 'EXPECTED MONTHLY REVENUE';
+          monthlyLabel.style.fontSize = '11px';
+          monthlyLabel.style.letterSpacing = '0.08em';
+          monthlyLabel.style.textTransform = 'uppercase';
+          monthlyLabel.style.color = '#64748b';
+          monthlyLabel.style.marginBottom = '4px';
+
+          const monthlyValueEl = document.createElement('div');
+          monthlyValueEl.textContent = monthlyExport;
+          monthlyValueEl.style.fontSize = '20px';
+          monthlyValueEl.style.fontWeight = '600';
+
+          monthlyBlock.appendChild(monthlyLabel);
+          monthlyBlock.appendChild(monthlyValueEl);
+          overviewExport.appendChild(monthlyBlock);
+
+          // --- Products export block ---
+          const productsExport = document.createElement('div');
+          productsExport.style.border = '1px solid #e2e8f0';
+          productsExport.style.borderRadius = '16px';
+          productsExport.style.padding = '20px 24px';
+          productsExport.style.background = '#ffffff';
+
+          const productsTitle = document.createElement('div');
+          productsTitle.textContent = 'Stripe products(s)';
+          productsTitle.style.fontSize = '16px';
+          productsTitle.style.fontWeight = '600';
+          productsTitle.style.marginBottom = '8px';
+          productsExport.appendChild(productsTitle);
+
+          if (products.length === 0) {
+            const emptyText = document.createElement('div');
+            emptyText.textContent =
+              'No recommended products yet. Select segment, contracting market, and business model to populate this list.';
+            emptyText.style.fontSize = '12px';
+            emptyText.style.color = '#64748b';
+            productsExport.appendChild(emptyText);
+          } else {
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.style.fontSize = '12px';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+
+            const hProduct = document.createElement('th');
+            hProduct.textContent = 'Product';
+            const hBestFor = document.createElement('th');
+            hBestFor.textContent = 'Use Case(s)';
+            const hWhy = document.createElement('th');
+            hWhy.textContent = 'Value Positioning';
+
+            [hProduct, hBestFor, hWhy].forEach((th) => {
+              th.style.textAlign = 'left';
+              th.style.padding = '8px 6px';
+              th.style.borderBottom = '1px solid #e2e8f0';
+              th.style.fontSize = '11px';
+              th.style.textTransform = 'uppercase';
+              th.style.letterSpacing = '0.06em';
+              th.style.color = '#64748b';
+            });
+
+            headerRow.appendChild(hProduct);
+            headerRow.appendChild(hBestFor);
+            headerRow.appendChild(hWhy);
+            thead.appendChild(headerRow);
+
+            const tbody = document.createElement('tbody');
+
+            products.forEach((p) => {
+              const tr = document.createElement('tr');
+
+              const tdName = document.createElement('td');
+              tdName.textContent = p.name;
+              tdName.style.padding = '8px 6px';
+              tdName.style.verticalAlign = 'top';
+              tdName.style.borderBottom = '1px solid #e2e8f0';
+              tdName.style.fontWeight = '500';
+
+              const tdBest = document.createElement('td');
+              tdBest.textContent = p.bestFor;
+              tdBest.style.padding = '8px 6px';
+              tdBest.style.verticalAlign = 'top';
+              tdBest.style.borderBottom = '1px solid #e2e8f0';
+
+              const tdWhy = document.createElement('td');
+              tdWhy.textContent = p.why;
+              tdWhy.style.padding = '8px 6px';
+              tdWhy.style.verticalAlign = 'top';
+              tdWhy.style.borderBottom = '1px solid #e2e8f0';
+              tdWhy.style.color = '#64748b';
+
+              tr.appendChild(tdName);
+              tr.appendChild(tdBest);
+              tr.appendChild(tdWhy);
+              tbody.appendChild(tr);
+            });
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            productsExport.appendChild(table);
+          }
+
+          // Assemble into wrapper
+          wrapper.appendChild(overviewExport);
+          wrapper.appendChild(productsExport);
+          document.body.appendChild(wrapper);
+
+          // Capture to canvas
+          const canvas = await html2canvas(wrapper, {
+            scale: 2,
+            backgroundColor: '#ffffff'
+          });
+
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+
+          const margin = 10;
+          const imgWidth = pageWidth - margin * 2;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+          let heightLeft = imgHeight;
+          let position = margin;
+
+          pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+          heightLeft -= (pageHeight - margin * 2);
+
+          while (heightLeft > 0) {
+            pdf.addPage();
+            position = heightLeft * -1 + margin;
+            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - margin * 2);
+          }
+
+          const safeName = (companyName || 'prospect')
+            .replace(/[^a-z0-9]+/gi, '_')
+            .toLowerCase();
+
+          pdf.save(`stripe_prospect_${safeName}.pdf`);
+
+          document.body.removeChild(wrapper);
+        } catch (err) {
+          console.error(err);
+          alert('Sorry, there was a problem generating the PDF.');
         }
       }
-    });
-
-    // Build an off-screen wrapper with a simple, PDF-friendly layout
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'fixed';
-    wrapper.style.left = '-9999px';
-    wrapper.style.top = '0';
-    wrapper.style.background = '#ffffff';
-    wrapper.style.padding = '24px';
-    wrapper.style.boxSizing = 'border-box';
-    wrapper.style.maxWidth = '900px';
-    wrapper.style.fontFamily = '-apple-system, BlinkMacSystemFont, system-ui, sans-serif';
-    wrapper.style.color = '#0f172a';
-
-    // --- Overview export block ---
-    const overviewExport = document.createElement('div');
-    overviewExport.style.border = '1px solid #e2e8f0';
-    overviewExport.style.borderRadius = '16px';
-    overviewExport.style.padding = '20px 24px';
-    overviewExport.style.marginBottom = '20px';
-    overviewExport.style.background = '#f8fafc';
-
-    // Company name (big + clear)
-    const nameEl = document.createElement('div');
-    nameEl.textContent = companyName || 'Prospect overview';
-    nameEl.style.fontSize = '24px';
-    nameEl.style.lineHeight = '1.3';
-    nameEl.style.fontWeight = '700';
-    nameEl.style.marginBottom = '12px';
-    overviewExport.appendChild(nameEl);
-
-    // Annual revenue
-    const annualBlock = document.createElement('div');
-    annualBlock.style.marginBottom = '12px';
-
-    const annualLabel = document.createElement('div');
-    annualLabel.textContent = 'EXPECTED ANNUAL REVENUE';
-    annualLabel.style.fontSize = '11px';
-    annualLabel.style.letterSpacing = '0.08em';
-    annualLabel.style.textTransform = 'uppercase';
-    annualLabel.style.color = '#64748b';
-    annualLabel.style.marginBottom = '4px';
-
-    const annualValueEl = document.createElement('div');
-    annualValueEl.textContent = annualExport;
-    annualValueEl.style.fontSize = '20px';
-    annualValueEl.style.fontWeight = '600';
-
-    annualBlock.appendChild(annualLabel);
-    annualBlock.appendChild(annualValueEl);
-    overviewExport.appendChild(annualBlock);
-
-    // Monthly revenue
-    const monthlyBlock = document.createElement('div');
-
-    const monthlyLabel = document.createElement('div');
-    monthlyLabel.textContent = 'EXPECTED MONTHLY REVENUE';
-    monthlyLabel.style.fontSize = '11px';
-    monthlyLabel.style.letterSpacing = '0.08em';
-    monthlyLabel.style.textTransform = 'uppercase';
-    monthlyLabel.style.color = '#64748b';
-    monthlyLabel.style.marginBottom = '4px';
-
-    const monthlyValueEl = document.createElement('div');
-    monthlyValueEl.textContent = monthlyExport;
-    monthlyValueEl.style.fontSize = '20px';
-    monthlyValueEl.style.fontWeight = '600';
-
-    monthlyBlock.appendChild(monthlyLabel);
-    monthlyBlock.appendChild(monthlyValueEl);
-    overviewExport.appendChild(monthlyBlock);
-
-    // --- Products export block ---
-    const productsExport = document.createElement('div');
-    productsExport.style.border = '1px solid #e2e8f0';
-    productsExport.style.borderRadius = '16px';
-    productsExport.style.padding = '20px 24px';
-    productsExport.style.background = '#ffffff';
-
-    const productsTitle = document.createElement('div');
-    productsTitle.textContent = 'Recommended Stripe products';
-    productsTitle.style.fontSize = '16px';
-    productsTitle.style.fontWeight = '600';
-    productsTitle.style.marginBottom = '8px';
-    productsExport.appendChild(productsTitle);
-
-    if (products.length === 0) {
-      const emptyText = document.createElement('div');
-      emptyText.textContent =
-        'No recommended products yet. Select segment, contracting market, and business model to populate this list.';
-      emptyText.style.fontSize = '12px';
-      emptyText.style.color = '#64748b';
-      productsExport.appendChild(emptyText);
-    } else {
-      const table = document.createElement('table');
-      table.style.width = '100%';
-      table.style.borderCollapse = 'collapse';
-      table.style.fontSize = '12px';
-
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-
-      const hProduct = document.createElement('th');
-      hProduct.textContent = 'Product';
-      const hBestFor = document.createElement('th');
-      hBestFor.textContent = 'Best for';
-      const hWhy = document.createElement('th');
-      hWhy.textContent = 'Why it matters';
-
-      [hProduct, hBestFor, hWhy].forEach((th) => {
-        th.style.textAlign = 'left';
-        th.style.padding = '8px 6px';
-        th.style.borderBottom = '1px solid #e2e8f0';
-        th.style.fontSize = '11px';
-        th.style.textTransform = 'uppercase';
-        th.style.letterSpacing = '0.06em';
-        th.style.color = '#64748b';
-      });
-
-      headerRow.appendChild(hProduct);
-      headerRow.appendChild(hBestFor);
-      headerRow.appendChild(hWhy);
-      thead.appendChild(headerRow);
-
-      const tbody = document.createElement('tbody');
-
-      products.forEach((p) => {
-        const tr = document.createElement('tr');
-
-        const tdName = document.createElement('td');
-        tdName.textContent = p.name;
-        tdName.style.padding = '8px 6px';
-        tdName.style.verticalAlign = 'top';
-        tdName.style.borderBottom = '1px solid #e2e8f0';
-        tdName.style.fontWeight = '500';
-
-        const tdBest = document.createElement('td');
-        tdBest.textContent = p.bestFor;
-        tdBest.style.padding = '8px 6px';
-        tdBest.style.verticalAlign = 'top';
-        tdBest.style.borderBottom = '1px solid #e2e8f0';
-
-        const tdWhy = document.createElement('td');
-        tdWhy.textContent = p.why;
-        tdWhy.style.padding = '8px 6px';
-        tdWhy.style.verticalAlign = 'top';
-        tdWhy.style.borderBottom = '1px solid #e2e8f0';
-        tdWhy.style.color = '#64748b';
-
-        tr.appendChild(tdName);
-        tr.appendChild(tdBest);
-        tr.appendChild(tdWhy);
-        tbody.appendChild(tr);
-      });
-
-      table.appendChild(thead);
-      table.appendChild(tbody);
-      productsExport.appendChild(table);
-    }
-
-    // Assemble into wrapper
-    wrapper.appendChild(overviewExport);
-    wrapper.appendChild(productsExport);
-    document.body.appendChild(wrapper);
-
-    // Capture to canvas
-    const canvas = await html2canvas(wrapper, {
-      scale: 2,
-      backgroundColor: '#ffffff'
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const margin = 10;
-    const imgWidth = pageWidth - margin * 2;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = margin;
-
-    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-    heightLeft -= (pageHeight - margin * 2);
-
-    while (heightLeft > 0) {
-      pdf.addPage();
-      position = heightLeft * -1 + margin;
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      heightLeft -= (pageHeight - margin * 2);
-    }
-
-    const safeName = (companyName || 'prospect')
-      .replace(/[^a-z0-9]+/gi, '_')
-      .toLowerCase();
-
-    pdf.save(`stripe_prospect_${safeName}.pdf`);
-
-    document.body.removeChild(wrapper);
-  } catch (err) {
-    console.error(err);
-    alert('Sorry, there was a problem generating the PDF.');
-  }
-}
-
-
-
-
-
-
-
 
       // --- Event wiring ---
       companyNameInput.addEventListener('input', () => {
