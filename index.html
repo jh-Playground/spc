@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stripe Prospect Screener</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind theming for a bright, Stripe-ish feel
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            stripeIndigo: '#635bff',
+            stripePurple: '#7000ff',
+            stripePink: '#ff72d2',
+          },
+          boxShadow: {
+            soft: '0 20px 45px -20px rgba(15, 23, 42, 0.15)',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- PDF + DOM capture libraries (no integrity/CORS to avoid blocking when using file://) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-50 via-sky-50 to-violet-100 text-slate-900">
+  <div class="min-h-screen flex flex-col">
+    <main class="flex-1">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <!-- Prospect details + overview -->
+        <section class="space-y-4">
+          <!-- Prospect info card -->
+          <div class="bg-white/90 border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-soft">
+            <div class="flex items-center justify-between gap-4 mb-5">
+              <div>
+                <h2 class="text-base sm:text-lg font-semibold text-slate-900 tracking-tight">
+                  Prospect details
+                </h2>
+                <p class="text-sm text-slate-500">
+                  Start here – everything else reacts in real time.
+                </p>
+              </div>
+            </div>
+
+            <!-- Form grid -->
+            <div class="grid gap-5 md:grid-cols-2">
+              <!-- Company Name -->
+              <div class="md:col-span-2">
+                <label for="companyName" class="block text-sm font-medium text-slate-700 mb-1.5">
+                  Company Name
+                </label>
+                <input
+                  id="companyName"
+                  type="text"
+                  placeholder="e.g. LunarPay"
+                  class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                />
+              </div>
+
+              <!-- Segment / Contracting Market row -->
+              <div>
+                <label for="marketSegment" class="block text-sm font-medium text-slate-700 mb-1.5">
+                  Market Segment
+                </label>
+                <select
+                  id="marketSegment"
+                  class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                >
+                  <option value="">Select segment</option>
+                  <option value="Startup">Startup</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="market" class="block text-sm font-medium text-slate-700 mb-1.5">
+                  Contracting Market (APAC)
+                </label>
+                <select
+                  id="market"
+                  class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                >
+                  <option value="">Select contracting market</option>
+                  <option>Australia</option>
+                  <option>New Zealand</option>
+                  <option>Singapore</option>
+                  <option>Hong Kong</option>
+                  <option>Japan</option>
+                  <option>India</option>
+                  <option>Indonesia</option>
+                  <option>Malaysia</option>
+                  <option>Philippines</option>
+                  <option>Thailand</option>
+                  <option>Vietnam</option>
+                  <option>Other APAC</option>
+                </select>
+              </div>
+
+              <!-- Business model -->
+              <div class="md:col-span-2">
+                <label for="businessModel" class="block text-sm font-medium text-slate-700 mb-1.5">
+                  Business Model
+                </label>
+                <select
+                  id="businessModel"
+                  class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                >
+                  <option value="">Select model</option>
+                  <option>B2B SaaS</option>
+                  <option>B2C eCommerce</option>
+                  <option>Marketplace / Platform</option>
+                  <option>Subscription Consumer App</option>
+                  <option>Fintech / Payments</option>
+                  <option>AI / Usage-based API</option>
+                  <option>Non-profit / Education</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <!-- Group label -->
+              <div class="md:col-span-2 pt-1">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                  Payment volume & pricing
+                </p>
+              </div>
+
+              <!-- One row: Payment Volume, Currency, Tx Volume -->
+              <div class="md:col-span-2 grid gap-5 md:grid-cols-3">
+                <div>
+                  <label for="avgMonthlyPaymentVolume" class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Expected Avg Monthly Payment Volume
+                  </label>
+                  <input
+                    id="avgMonthlyPaymentVolume"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="e.g. 250,000.00"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                  />
+                </div>
+
+                <div>
+                  <label for="avgPaymentCurrency" class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Payment Volume Currency
+                  </label>
+                  <select
+                    id="avgPaymentCurrency"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                  >
+                    <option>AUD</option>
+                    <option>NZD</option>
+                    <option>USD</option>
+                    <option>SGD</option>
+                    <option>JPY</option>
+                    <option>INR</option>
+                    <option>HKD</option>
+                    <option>IDR</option>
+                    <option>MYR</option>
+                    <option>PHP</option>
+                    <option>THB</option>
+                    <option>VND</option>
+                    <option>EUR</option>
+                    <option>GBP</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="avgMonthlyTxVolume" class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Expected Avg Monthly Transaction Volume
+                  </label>
+                  <input
+                    id="avgMonthlyTxVolume"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 8000"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                  />
+                </div>
+              </div>
+
+              <!-- One row: Per Tx Fee + Percentage -->
+              <div class="md:col-span-2 grid gap-5 md:grid-cols-2">
+                <div>
+                  <label for="perTxFee" class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Per Transaction Fee
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input
+                      id="perTxFee"
+                      type="text"
+                      inputmode="decimal"
+                      placeholder="0.30"
+                      class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                    />
+                  </div>
+                  <p class="mt-1 text-xs text-slate-500">
+                    Dollar amount per transaction (e.g. 0.30 for 30c).
+                  </p>
+                </div>
+
+                <div>
+                  <label for="perTxPercentage" class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Per Transaction Percentage
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input
+                      id="perTxPercentage"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="2.9"
+                      class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 placeholder-slate-400 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                    />
+                    <span class="text-sm text-slate-500 pr-1">
+                      %
+                    </span>
+                  </div>
+                  <p class="mt-1 text-xs text-slate-500">
+                    Percentage of payment volume (e.g. 2.9 for 2.9%).
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Revenue summary card -->
+          <div id="overviewPanel" class="bg-white/90 border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-soft flex flex-col justify-between">
+            <div class="space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                <div>
+                  <p class="text-xs uppercase tracking-wide text-slate-500 mb-1">
+                    Overview
+                  </p>
+                  <p id="companyNameDisplay" class="text-base font-semibold text-slate-900 truncate">
+                    Prospect overview
+                  </p>
+                </div>
+
+                <!-- Revenue currency selector -->
+                <div class="sm:w-56">
+                  <label for="revenueCurrency" class="block text-xs font-medium text-slate-700 mb-1.5">
+                    Expected Revenue Currency
+                  </label>
+                  <select
+                    id="revenueCurrency"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner shadow-slate-100 focus:outline-none focus:ring-2 focus:ring-stripeIndigo focus:border-stripeIndigo"
+                  >
+                    <option>USD</option>
+                    <option>AUD</option>
+                    <option>NZD</option>
+                    <option>SGD</option>
+                    <option>JPY</option>
+                    <option>INR</option>
+                    <option>HKD</option>
+                    <option>IDR</option>
+                    <option>MYR</option>
+                    <option>PHP</option>
+                    <option>THB</option>
+                    <option>VND</option>
+                    <option>EUR</option>
+                    <option>GBP</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5">
+                  <p class="text-xs uppercase tracking-wide text-slate-500 mb-1">
+                    Expected Annual Revenue
+                  </p>
+                  <p id="annualRevenueValue" class="text-2xl font-semibold tabular-nums text-slate-900">
+                    —
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5">
+                  <p class="text-xs uppercase tracking-wide text-slate-500 mb-1">
+                    Expected Monthly Revenue
+                  </p>
+                  <p id="monthlyRevenueValue" class="text-2xl font-semibold tabular-nums text-slate-900">
+                    —
+                  </p>
+                </div>
+              </div>
+
+              <p class="text-xs sm:text-sm text-slate-500 leading-snug">
+                Formula:&nbsp;
+                <code class="font-mono text-[11px] text-slate-700">
+                  ((Monthly Tx Volume × Per Tx Fee) + (Monthly Payment Volume × % Fee)) × 12
+                </code>
+              </p>
+              <p class="text-xs sm:text-sm text-slate-500">
+                Revenue is shown in the selected <span class="font-semibold text-slate-800">Expected Revenue Currency</span>,
+                converted from the <span class="font-semibold text-slate-800">Payment Volume Currency</span>.
+              </p>
+
+              <!-- Download button, bottom-right -->
+              <div class="flex justify-end pt-2">
+                <button
+                  id="downloadPdfBtn"
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-stripeIndigo px-3.5 py-2 text-xs sm:text-sm font-medium text-white shadow-soft hover:bg-stripePurple focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stripeIndigo"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 2a1 1 0 0 1 2 0v8.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1.002 1.002 0 0 1-1.414 0l-4-4A1 1 0 0 1 6.293 8.293L8.5 10.5V2H9z" />
+                    <path d="M4 14a1 1 0 0 1 1-1h10a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1z" />
+                  </svg>
+                  <span>Download PDF</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Stripe products recommendation -->
+        <section id="productsPanel" class="bg-white/90 border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-soft">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div>
+              <h2 class="text-base sm:text-lg font-semibold text-slate-900 tracking-tight">
+                Recommended Stripe products
+              </h2>
+              <p class="text-sm text-slate-500">
+                This table updates based on segment, contracting market, and business model.
+              </p>
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <table class="min-w-full text-left text-base">
+              <thead class="border-b border-slate-200 bg-indigo-50/80">
+                <tr>
+                  <th class="py-3 pl-3 pr-4 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Product
+                  </th>
+                  <th class="py-3 px-4 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Best for
+                  </th>
+                  <th class="py-3 px-4 text-xs font-medium uppercase tracking-wide text-slate-500 hidden md:table-cell">
+                    Why it matters
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+            <p
+              id="productsTableEmpty"
+              class="text-sm text-slate-500 py-4 px-4 border-t border-slate-200 bg-slate-50/60"
+            >
+              Make selections for <span class="font-semibold text-slate-700">Market Segment</span>,
+              <span class="font-semibold text-slate-700">Contracting Market</span>, and
+              <span class="font-semibold text-slate-700">Business Model</span> to see recommended Stripe products.
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // --- Element refs ---
+      const companyNameInput = document.getElementById('companyName');
+      const companyNameDisplay = document.getElementById('companyNameDisplay');
+
+      const marketSegmentSelect = document.getElementById('marketSegment');
+      const marketSelect = document.getElementById('market');
+      const businessModelSelect = document.getElementById('businessModel');
+
+      const avgMonthlyPaymentVolumeInput = document.getElementById('avgMonthlyPaymentVolume');
+      const avgPaymentCurrencySelect = document.getElementById('avgPaymentCurrency');
+      const avgMonthlyTxVolumeInput = document.getElementById('avgMonthlyTxVolume');
+      const perTxFeeInput = document.getElementById('perTxFee');
+      const perTxPercentageInput = document.getElementById('perTxPercentage');
+      const revenueCurrencySelect = document.getElementById('revenueCurrency');
+
+      const monthlyRevenueValue = document.getElementById('monthlyRevenueValue');
+      const annualRevenueValue = document.getElementById('annualRevenueValue');
+
+      const productsTableBody = document.getElementById('productsTableBody');
+      const productsTableEmpty = document.getElementById('productsTableEmpty');
+
+      const overviewPanel = document.getElementById('overviewPanel');
+      const productsPanel = document.getElementById('productsPanel');
+      const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+      // --- Helpers ---
+      const currencySymbols = {
+        AUD: '$',
+        NZD: '$',
+        USD: '$',
+        SGD: '$',
+        JPY: '¥',
+        INR: '₹',
+        HKD: '$',
+        IDR: 'Rp',
+        MYR: 'RM',
+        PHP: '₱',
+        THB: '฿',
+        VND: '₫',
+        EUR: '€',
+        GBP: '£',
+        Other: ''
+      };
+
+      // Approximate FX: value of 1 unit of that currency in USD
+      const fxToUSD = {
+        USD: 1,
+        AUD: 0.65,
+        NZD: 0.60,
+        SGD: 0.74,
+        JPY: 0.0065,
+        INR: 0.012,
+        HKD: 0.13,
+        IDR: 0.000064,
+        MYR: 0.22,
+        PHP: 0.017,
+        THB: 0.028,
+        VND: 0.000041,
+        EUR: 1.08,
+        GBP: 1.27,
+        Other: 1
+      };
+
+      function parseNumeric(value) {
+        if (typeof value !== 'string') return isNaN(value) ? 0 : value;
+        const cleaned = value.replace(/,/g, '');
+        const n = parseFloat(cleaned);
+        return isNaN(n) ? 0 : n;
+      }
+
+      function formatMoney(amount, currencyCode) {
+        if (!Number.isFinite(amount) || amount === 0) {
+          return '—';
+        }
+        const code = currencyCode || 'USD';
+        const symbol = currencySymbols[code] ?? '';
+        const formatted = amount.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        return symbol ? `${symbol}${formatted}` : `${formatted} ${code}`;
+      }
+
+      function convertCurrency(amount, fromCode, toCode) {
+        if (!Number.isFinite(amount) || amount === 0) return 0;
+        const from = fxToUSD[fromCode] ?? null;
+        const to = fxToUSD[toCode] ?? null;
+        if (!from || !to) {
+          // Fallback: no conversion if we don't know either currency
+          return amount;
+        }
+        const inUSD = amount * from;
+        return inUSD / to;
+      }
+
+      // Format a text input as currency (with grouping + 2 decimals) – used on blur
+      function formatCurrencyInput(el) {
+        const raw = el.value;
+        const trimmed = raw.trim();
+        if (trimmed === '') {
+          el.value = '';
+          return;
+        }
+        const num = parseNumeric(raw);
+        if (!Number.isFinite(num)) {
+          return;
+        }
+        el.value = num.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+
+      function stripFormatting(el) {
+        el.value = el.value.replace(/,/g, '');
+      }
+
+      // --- Revenue calculation ---
+      function updateRevenue() {
+        const monthlyTxVolume = parseNumeric(avgMonthlyTxVolumeInput.value);
+        const perTxFee = parseNumeric(perTxFeeInput.value);
+        const monthlyPaymentVolume = parseNumeric(avgMonthlyPaymentVolumeInput.value);
+        const perTxPercentage = parseNumeric(perTxPercentageInput.value) / 100;
+
+        // Revenue is first calculated in the payment volume currency
+        const monthlyRevenueLocal =
+          (monthlyTxVolume * perTxFee) +
+          (monthlyPaymentVolume * perTxPercentage);
+
+        const paymentCurrency = avgPaymentCurrencySelect.value || 'USD';
+        const revenueCurrency = revenueCurrencySelect.value || 'USD';
+
+        const monthlyRevenue = convertCurrency(
+          monthlyRevenueLocal,
+          paymentCurrency,
+          revenueCurrency
+        );
+
+        const annualRevenue = monthlyRevenue * 12;
+
+        monthlyRevenueValue.textContent = formatMoney(monthlyRevenue, revenueCurrency);
+        annualRevenueValue.textContent = formatMoney(annualRevenue, revenueCurrency);
+      }
+
+      // --- Products recommendation logic (simple rules we can refine) ---
+      const PRODUCT_DEFS = {
+        payments: {
+          name: 'Stripe Payments',
+          bestFor: 'Core card & wallet payments',
+          why: 'Unified payments stack with optimised acceptance, retries, and network-level optimisations.'
+        },
+        checkout: {
+          name: 'Stripe Checkout',
+          bestFor: 'Fast-start hosted checkout',
+          why: 'Hosted, conversion-optimised checkout with support for wallets, BNPL, and localisation.'
+        },
+        paymentLinks: {
+          name: 'Payment Links',
+          bestFor: 'No-code payment flows',
+          why: 'Share a link to start taking payments without engineering lift.'
+        },
+        billing: {
+          name: 'Stripe Billing',
+          bestFor: 'Subscriptions & invoicing',
+          why: 'Handles recurring billing, proration, trials, and revenue recognition workflows.'
+        },
+        invoicing: {
+          name: 'Stripe Invoicing',
+          bestFor: 'B2B invoices',
+          why: 'Send smart invoices with embedded payment methods and automatic reconciliation.'
+        },
+        connect: {
+          name: 'Stripe Connect',
+          bestFor: 'Marketplaces & platforms',
+          why: 'Manage multi-party payouts, KYC, onboarding, and compliance at scale.'
+        },
+        radar: {
+          name: 'Stripe Radar',
+          bestFor: 'Fraud detection',
+          why: 'Machine-learning fraud protection powered by data across millions of businesses.'
+        },
+        tax: {
+          name: 'Stripe Tax',
+          bestFor: 'Indirect tax compliance',
+          why: 'Automatically calculates, collects, and reports tax in supported jurisdictions.'
+        },
+        terminal: {
+          name: 'Stripe Terminal',
+          bestFor: 'In-person payments',
+          why: 'Unified online + in-person payments stack with pre-certified readers.'
+        },
+        climate: {
+          name: 'Stripe Climate',
+          bestFor: 'Climate-forward brands',
+          why: 'Allocate a fraction of revenue to high-quality carbon removal projects.'
+        },
+        dataPipeline: {
+          name: 'Stripe Data Pipeline',
+          bestFor: 'Data teams',
+          why: 'Sync Stripe data to your warehouse for deeper analysis and modelling.'
+        }
+      };
+
+      function pushUnique(arr, productKey) {
+        if (!PRODUCT_DEFS[productKey]) return;
+        if (!arr.includes(productKey)) arr.push(productKey);
+      }
+
+      function getRecommendedProducts(segment, market, businessModel) {
+        const keys = [];
+        const hasContext = !!(segment || market || businessModel);
+
+        if (!hasContext) return [];
+
+        // Baseline products for essentially any internet business
+        pushUnique(keys, 'payments');
+        pushUnique(keys, 'radar');
+
+        const model = (businessModel || '').toLowerCase();
+        const marketLower = (market || '').toLowerCase();
+
+        // Subscription / SaaS
+        if (model.includes('saas') || model.includes('subscription')) {
+          pushUnique(keys, 'billing');
+          pushUnique(keys, 'invoicing');
+          pushUnique(keys, 'tax');
+          pushUnique(keys, 'dataPipeline');
+        }
+
+        // B2C eCommerce
+        if (model.includes('ecommerce') || model.includes('b2c')) {
+          pushUnique(keys, 'checkout');
+          pushUnique(keys, 'paymentLinks');
+          pushUnique(keys, 'tax');
+        }
+
+        // Marketplaces / platforms
+        if (model.includes('marketplace') || model.includes('platform')) {
+          pushUnique(keys, 'connect');
+          pushUnique(keys, 'billing');
+        }
+
+        // Fintech / payments / AI / usage-based APIs
+        if (model.includes('fintech') || model.includes('payments') || model.includes('ai')) {
+          pushUnique(keys, 'billing');
+          pushUnique(keys, 'dataPipeline');
+        }
+
+        // Non-profit / education
+        if (model.includes('non-profit') || model.includes('non profit') || model.includes('education')) {
+          pushUnique(keys, 'paymentLinks');
+          pushUnique(keys, 'billing');
+          pushUnique(keys, 'climate');
+        }
+
+        // Markets where in-person is common
+        if (
+          ['australia', 'new zealand', 'singapore', 'japan', 'hong kong']
+            .some((m) => marketLower.includes(m))
+        ) {
+          pushUnique(keys, 'terminal');
+        }
+
+        // Segment-specific flavour (currently just Startup)
+        if (segment === 'Startup') {
+          // Startups often favour lower-lift integration paths initially
+          pushUnique(keys, 'checkout');
+          pushUnique(keys, 'paymentLinks');
+        }
+
+        return keys.map((key) => PRODUCT_DEFS[key]);
+      }
+
+      function updateProductsTable() {
+        const segment = marketSegmentSelect.value;
+        const market = marketSelect.value;
+        const businessModel = businessModelSelect.value;
+
+        const products = getRecommendedProducts(segment, market, businessModel);
+
+        productsTableBody.innerHTML = '';
+
+        if (!products.length) {
+          productsTableEmpty.classList.remove('hidden');
+          return;
+        }
+
+        productsTableEmpty.classList.add('hidden');
+
+        for (const product of products) {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-indigo-50/60 transition-colors';
+
+          tr.innerHTML = `
+            <td class="py-3 pl-3 pr-4 align-top">
+              <div class="text-base font-medium text-slate-900">${product.name}</div>
+            </td>
+            <td class="py-3 px-4 align-top">
+              <div class="text-sm text-slate-800">${product.bestFor}</div>
+            </td>
+            <td class="py-3 px-4 align-top hidden md:table-cell">
+              <div class="text-sm text-slate-500">${product.why}</div>
+            </td>
+          `;
+          productsTableBody.appendChild(tr);
+        }
+      }
+
+// --- Download PDF: Overview + Products panels (custom export layout) ---
+async function handleDownloadPdf() {
+  try {
+    if (!window.jspdf || !window.jspdf.jsPDF || typeof html2canvas === 'undefined') {
+      alert('PDF generation libraries not available. Please check that you are online and reload the page.');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+
+    // Current values from the live UI
+    const companyName = (companyNameInput.value || 'Prospect overview').trim();
+    const currencyCode = (revenueCurrencySelect.value || 'USD').trim();
+    const annualRaw = annualRevenueValue.textContent.trim();
+    const monthlyRaw = monthlyRevenueValue.textContent.trim();
+
+    const annualExport =
+      annualRaw && annualRaw !== '—' ? `${annualRaw} ${currencyCode}` : '—';
+    const monthlyExport =
+      monthlyRaw && monthlyRaw !== '—' ? `${monthlyRaw} ${currencyCode}` : '—';
+
+    // Extract current products from the table
+    const products = [];
+    productsTableBody.querySelectorAll('tr').forEach((row) => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 2) {
+        const name = (cells[0].innerText || '').trim();
+        const bestFor = (cells[1].innerText || '').trim();
+        const why = cells[2] ? (cells[2].innerText || '').trim() : '';
+        if (name) {
+          products.push({ name, bestFor, why });
+        }
+      }
+    });
+
+    // Build an off-screen wrapper with a simple, PDF-friendly layout
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-9999px';
+    wrapper.style.top = '0';
+    wrapper.style.background = '#ffffff';
+    wrapper.style.padding = '24px';
+    wrapper.style.boxSizing = 'border-box';
+    wrapper.style.maxWidth = '900px';
+    wrapper.style.fontFamily = '-apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+    wrapper.style.color = '#0f172a';
+
+    // --- Overview export block ---
+    const overviewExport = document.createElement('div');
+    overviewExport.style.border = '1px solid #e2e8f0';
+    overviewExport.style.borderRadius = '16px';
+    overviewExport.style.padding = '20px 24px';
+    overviewExport.style.marginBottom = '20px';
+    overviewExport.style.background = '#f8fafc';
+
+    // Company name (big + clear)
+    const nameEl = document.createElement('div');
+    nameEl.textContent = companyName || 'Prospect overview';
+    nameEl.style.fontSize = '24px';
+    nameEl.style.lineHeight = '1.3';
+    nameEl.style.fontWeight = '700';
+    nameEl.style.marginBottom = '12px';
+    overviewExport.appendChild(nameEl);
+
+    // Annual revenue
+    const annualBlock = document.createElement('div');
+    annualBlock.style.marginBottom = '12px';
+
+    const annualLabel = document.createElement('div');
+    annualLabel.textContent = 'EXPECTED ANNUAL REVENUE';
+    annualLabel.style.fontSize = '11px';
+    annualLabel.style.letterSpacing = '0.08em';
+    annualLabel.style.textTransform = 'uppercase';
+    annualLabel.style.color = '#64748b';
+    annualLabel.style.marginBottom = '4px';
+
+    const annualValueEl = document.createElement('div');
+    annualValueEl.textContent = annualExport;
+    annualValueEl.style.fontSize = '20px';
+    annualValueEl.style.fontWeight = '600';
+
+    annualBlock.appendChild(annualLabel);
+    annualBlock.appendChild(annualValueEl);
+    overviewExport.appendChild(annualBlock);
+
+    // Monthly revenue
+    const monthlyBlock = document.createElement('div');
+
+    const monthlyLabel = document.createElement('div');
+    monthlyLabel.textContent = 'EXPECTED MONTHLY REVENUE';
+    monthlyLabel.style.fontSize = '11px';
+    monthlyLabel.style.letterSpacing = '0.08em';
+    monthlyLabel.style.textTransform = 'uppercase';
+    monthlyLabel.style.color = '#64748b';
+    monthlyLabel.style.marginBottom = '4px';
+
+    const monthlyValueEl = document.createElement('div');
+    monthlyValueEl.textContent = monthlyExport;
+    monthlyValueEl.style.fontSize = '20px';
+    monthlyValueEl.style.fontWeight = '600';
+
+    monthlyBlock.appendChild(monthlyLabel);
+    monthlyBlock.appendChild(monthlyValueEl);
+    overviewExport.appendChild(monthlyBlock);
+
+    // --- Products export block ---
+    const productsExport = document.createElement('div');
+    productsExport.style.border = '1px solid #e2e8f0';
+    productsExport.style.borderRadius = '16px';
+    productsExport.style.padding = '20px 24px';
+    productsExport.style.background = '#ffffff';
+
+    const productsTitle = document.createElement('div');
+    productsTitle.textContent = 'Recommended Stripe products';
+    productsTitle.style.fontSize = '16px';
+    productsTitle.style.fontWeight = '600';
+    productsTitle.style.marginBottom = '8px';
+    productsExport.appendChild(productsTitle);
+
+    if (products.length === 0) {
+      const emptyText = document.createElement('div');
+      emptyText.textContent =
+        'No recommended products yet. Select segment, contracting market, and business model to populate this list.';
+      emptyText.style.fontSize = '12px';
+      emptyText.style.color = '#64748b';
+      productsExport.appendChild(emptyText);
+    } else {
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.fontSize = '12px';
+
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+
+      const hProduct = document.createElement('th');
+      hProduct.textContent = 'Product';
+      const hBestFor = document.createElement('th');
+      hBestFor.textContent = 'Best for';
+      const hWhy = document.createElement('th');
+      hWhy.textContent = 'Why it matters';
+
+      [hProduct, hBestFor, hWhy].forEach((th) => {
+        th.style.textAlign = 'left';
+        th.style.padding = '8px 6px';
+        th.style.borderBottom = '1px solid #e2e8f0';
+        th.style.fontSize = '11px';
+        th.style.textTransform = 'uppercase';
+        th.style.letterSpacing = '0.06em';
+        th.style.color = '#64748b';
+      });
+
+      headerRow.appendChild(hProduct);
+      headerRow.appendChild(hBestFor);
+      headerRow.appendChild(hWhy);
+      thead.appendChild(headerRow);
+
+      const tbody = document.createElement('tbody');
+
+      products.forEach((p) => {
+        const tr = document.createElement('tr');
+
+        const tdName = document.createElement('td');
+        tdName.textContent = p.name;
+        tdName.style.padding = '8px 6px';
+        tdName.style.verticalAlign = 'top';
+        tdName.style.borderBottom = '1px solid #e2e8f0';
+        tdName.style.fontWeight = '500';
+
+        const tdBest = document.createElement('td');
+        tdBest.textContent = p.bestFor;
+        tdBest.style.padding = '8px 6px';
+        tdBest.style.verticalAlign = 'top';
+        tdBest.style.borderBottom = '1px solid #e2e8f0';
+
+        const tdWhy = document.createElement('td');
+        tdWhy.textContent = p.why;
+        tdWhy.style.padding = '8px 6px';
+        tdWhy.style.verticalAlign = 'top';
+        tdWhy.style.borderBottom = '1px solid #e2e8f0';
+        tdWhy.style.color = '#64748b';
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdBest);
+        tr.appendChild(tdWhy);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      productsExport.appendChild(table);
+    }
+
+    // Assemble into wrapper
+    wrapper.appendChild(overviewExport);
+    wrapper.appendChild(productsExport);
+    document.body.appendChild(wrapper);
+
+    // Capture to canvas
+    const canvas = await html2canvas(wrapper, {
+      scale: 2,
+      backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const margin = 10;
+    const imgWidth = pageWidth - margin * 2;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = margin;
+
+    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+    heightLeft -= (pageHeight - margin * 2);
+
+    while (heightLeft > 0) {
+      pdf.addPage();
+      position = heightLeft * -1 + margin;
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - margin * 2);
+    }
+
+    const safeName = (companyName || 'prospect')
+      .replace(/[^a-z0-9]+/gi, '_')
+      .toLowerCase();
+
+    pdf.save(`stripe_prospect_${safeName}.pdf`);
+
+    document.body.removeChild(wrapper);
+  } catch (err) {
+    console.error(err);
+    alert('Sorry, there was a problem generating the PDF.');
+  }
+}
+
+
+
+
+
+
+
+
+      // --- Event wiring ---
+      companyNameInput.addEventListener('input', () => {
+        const v = companyNameInput.value.trim();
+        companyNameDisplay.textContent = v || 'Prospect overview';
+      });
+
+      // Currency entry fields: only format on blur, not every keystroke
+      [avgMonthlyPaymentVolumeInput, perTxFeeInput].forEach((el) => {
+        el.addEventListener('focus', () => {
+          stripFormatting(el);
+        });
+
+        el.addEventListener('blur', () => {
+          if (el.value.trim() !== '') {
+            formatCurrencyInput(el);
+          }
+          updateRevenue();
+        });
+
+        el.addEventListener('input', () => {
+          updateRevenue();
+        });
+      });
+
+      [
+        avgMonthlyTxVolumeInput,
+        perTxPercentageInput,
+        avgPaymentCurrencySelect,
+        revenueCurrencySelect
+      ].forEach((el) => {
+        el.addEventListener('input', updateRevenue);
+        el.addEventListener('change', updateRevenue);
+      });
+
+      [marketSegmentSelect, marketSelect, businessModelSelect].forEach((el) => {
+        el.addEventListener('change', updateProductsTable);
+      });
+
+      if (downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', handleDownloadPdf);
+      }
+
+      // Initial render
+      updateRevenue();
+      updateProductsTable();
+    });
+  </script>
+</body>
+</html>
