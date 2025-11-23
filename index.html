@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stripe Prospect Screener</title>
+  <title>Stripe Pricing (Value) Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -1200,7 +1200,7 @@
             .replace(/[^a-z0-9]+/gi, '_')
             .toLowerCase();
 
-          pdf.save(`stripe_prospect_${safeName}.pdf`);
+          pdf.save(`${safeName}_overview.pdf`);
 
           document.body.removeChild(wrapper);
         } catch (err) {
